@@ -4,17 +4,31 @@
 // The testdata only contains the first 100 mails (mail1 ~ mail100)
 // and 2000 queries for you to debug.
 
-struct gay{
-	int ass;
-	int qazwsxyen;
-};
-
 int n_mails, n_queries;
 mail *mails;
 query *queries;
-typedef struct shitface{
-	int dick;
-}fuck;
+
+//TODO: make a hash
+
+typedef struct dset
+{
+	dsnode *head, *tail;
+	int size;
+}dset;
+
+typedef struct dsnode{
+	dset *parent;
+	struct dsnode *next;
+	//some info
+}dsnode;
+
+dset *find_set(dsnode *node){
+
+}
+
+void Union(dset *s1, dset *s2){ //by size
+	if ()
+}
 
 int main(void) {
 	api.init(&n_mails, &n_queries, &mails, &queries);
