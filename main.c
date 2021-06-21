@@ -7,6 +7,9 @@
 int n_mails, n_queries;
 mail *mails;
 query *queries;
+typedef struct shitface{
+	int dick;
+}fuck;
 
 int main(void) {
 	api.init(&n_mails, &n_queries, &mails, &queries);
