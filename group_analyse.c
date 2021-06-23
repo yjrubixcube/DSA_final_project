@@ -104,24 +104,27 @@ void Union(char *n1, char *n2){
     int id1 = find_set(n1);
     int id2 = find_set(n2);
     
-	if(ds[id1].size > 1 && ds[id2].size > 1)
-		group_num--;
-	else if(ds[id1].size == 1 && ds[id2].size == 1)
-		group_num++;
-	
-	if(ds[id1].size >= ds[id2].size){
-    	ds[id2].parent = id1;
-    	ds[id1].size += ds[id2].size;
-    	
-    	if(ds[id1].size > max_group_size)
-    		max_group_size = ds[id1].size;
-	}
-	else{
-		ds[id1].parent = id2;
-    	ds[id2].size += ds[id1].size;
-    	
-    	if(ds[id2].size > max_group_size)
-    		max_group_size = ds[id2].size;
+    if(id1 != id2)
+	{
+		if(ds[id1].size > 1 && ds[id2].size > 1)
+			group_num--;
+		else if(ds[id1].size == 1 && ds[id2].size == 1)
+			group_num++;
+		
+		if(ds[id1].size >= ds[id2].size){
+	    	ds[id2].parent = id1;
+	    	ds[id1].size += ds[id2].size;
+	    	
+	    	if(ds[id1].size > max_group_size)
+	    		max_group_size = ds[id1].size;
+		}
+		else{
+			ds[id1].parent = id2;
+	    	ds[id2].size += ds[id1].size;
+	    	
+	    	if(ds[id2].size > max_group_size)
+	    		max_group_size = ds[id2].size;
+		}
 	}
 }
 
@@ -140,23 +143,26 @@ int main(){
     trie_root = build_node(); //initialize root
 
 	mail *t_mail;
+	int n;
+	int *ids;
+	char *from, *to;
+	int ans[2];
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == group_analyse){
             //printf("-----------group_analyse query-----------\n");
-            int n = queries[i].data.group_analyse_data.len;
-            int *ids = queries[i].data.group_analyse_data.mids;
+            n = queries[i].data.group_analyse_data.len;
+            ids = queries[i].data.group_analyse_data.mids;
             dset_init(ds);
 
             for(int j=0; j<n; j++){
                 t_mail = &mails[ids[j]];
             
-                char *from = t_mail->from;
-                char *to = t_mail->to;
+                from = t_mail->from;
+                to = t_mail->to;
                 //printf("From:%s\n", from);
                 //printf("To:%s\n", to);
                 Union(from, to);
             }
-            int ans[2];
             ans[0] = group_num;
             ans[1] = max_group_size;
             api.answer(i, ans, 2);
