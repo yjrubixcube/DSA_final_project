@@ -3,29 +3,29 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-int dset_size = 0;  //number of group in disjoint set
-int trie_size = 0;  //number of names stored in the trie 
+int group_num = 0;  //number of group in disjoint set
+int string_num = 0;  //number of names stored in the trie 
 int max_group_size = 0;
 
 typedef struct dset{
     int size;
     int parent;
-    bool exist;
 } dset;
 dset ds[600];
 
 void dset_init(dset *ds){
     for(int i=0; i<600; i++){
-        ds[i].exist = false;
+        ds[i].parent = -1;
+        ds[i].size = 0;
     }
-    dset_size = 0;
+    group_num = 0;
     max_group_size = 0;
 }
 
 typedef struct trie_node{
     struct trie_node *child[26];
     int id;  //index in disjoint set array
-    bool is_word;
+    bool is_name;
 } trie_node;
 trie_node *trie_root; //trie for group_analyse
 
@@ -34,7 +34,7 @@ trie_node* build_node(){
     trie_node *new = (trie_node*)malloc(sizeof(trie_node));
     
     for(int i=0; i<26; i++) new->child[i] = NULL;
-    new->is_word = false;
+    new->is_name = false;
     new->id = -1;
 
     return new;
@@ -57,10 +57,10 @@ int get_name_id(trie_node *root, char *w){
     }
     
     //the name doesn't exist
-    if(!cur->is_word){
-        cur->is_word = true;
-        cur->id = trie_size;
-        trie_size += 1;
+    if(!cur->is_name){
+        cur->is_name = true;
+        cur->id = string_num;
+        string_num += 1;
     }
 
     return cur->id; 
@@ -74,7 +74,7 @@ void show(trie_node *root, int level){
         if(root->child[i] != NULL){
             for(int i=1; i<level; i++) printf("-");
             printf("%c", i+'a');
-            if(root->child[i]->is_word) printf(" name id: %d", root->child[i]->id);
+            if(root->child[i]->is_name) printf(" name id: %d", root->child[i]->id);
             printf("\n");
 
             show(root->child[i], level);
@@ -83,10 +83,8 @@ void show(trie_node *root, int level){
 }
 
 void make_set(int i){
-    ds[i].exist = true;
     ds[i].parent = i;
     ds[i].size = 1;
-    dset_size += 1;
 }
 
 int get_root(int i){
@@ -97,7 +95,7 @@ int get_root(int i){
 
 int find_set(char *name){
     int id = get_name_id(trie_root, name);
-    if(!ds[id].exist) make_set(id);
+    if(ds[id].size < 0) make_set(id);
 
     return get_root(id);
 }
@@ -105,12 +103,26 @@ int find_set(char *name){
 void Union(char *n1, char *n2){
     int id1 = find_set(n1);
     int id2 = find_set(n2);
-    ds[id1].parent = ds[id2].parent;
     
-    ds[id2].size += ds[id1].size;
-    if(ds[id2].size > max_group_size) max_group_size = ds[id2].size;
-
-    dset_size -= 1;
+	if(ds[id1].size > 1 && ds[id2].size > 1)
+		group_num--;
+	else if(ds[id1].size == 1 && ds[id2].size == 1)
+		group_num++;
+	
+	if(ds[id1].size >= ds[id2].size){
+    	ds[id2].parent = id1;
+    	ds[id1].size += ds[id2].size;
+    	
+    	if(ds[id1].size > max_group_size)
+    		max_group_size = ds[id1].size;
+	}
+	else{
+		ds[id1].parent = id2;
+    	ds[id2].size += ds[id1].size;
+    	
+    	if(ds[id2].size > max_group_size)
+    		max_group_size = ds[id2].size;
+	}
 }
 
 
@@ -144,10 +156,10 @@ int main(){
                 Union(from, to);
             }
             int ans[2];
-            ans[0] = dset_size;
+            ans[0] = group_num;
             ans[1] = max_group_size;
             api.answer(i, ans, 2);
-            //printf("number of groups:%d\n", dset_size);
+            //printf("number of groups:%d\n", group_num);
             //printf("size of largest group:%d\n", max_group_size);
         }
     }
