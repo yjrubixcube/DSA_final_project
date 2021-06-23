@@ -5,19 +5,21 @@
 
 int dset_size = 0;  //number of group in disjoint set
 int trie_size = 0;  //number of names stored in the trie 
+int max_group_size = 0;
 
 typedef struct dset{
     int size;
     int parent;
+    bool exist;
 } dset;
 dset ds[600];
 
 void dset_init(dset *ds){
     for(int i=0; i<600; i++){
-        ds[i].parent = i;
-        ds[i].size = 1;
+        ds[i].exist = false;
     }
     dset_size = 0;
+    max_group_size = 0;
 }
 
 typedef struct trie_node{
@@ -59,7 +61,6 @@ int get_name_id(trie_node *root, char *w){
         cur->is_word = true;
         cur->id = trie_size;
         trie_size += 1;
-        dset_size += 1;;
     }
 
     return cur->id; 
@@ -81,6 +82,13 @@ void show(trie_node *root, int level){
     }
 }
 
+void make_set(int i){
+    ds[i].exist = true;
+    ds[i].parent = i;
+    ds[i].size = 1;
+    dset_size += 1;
+}
+
 int get_root(int i){
     //path compression
     if(ds[i].parent != i) ds[i].parent = get_root(ds[i].parent);
@@ -89,15 +97,20 @@ int get_root(int i){
 
 int find_set(char *name){
     int id = get_name_id(trie_root, name);
+    if(!ds[id].exist) make_set(id);
 
     return get_root(id);
 }
 
-//haven't finished
 void Union(char *n1, char *n2){
     int id1 = find_set(n1);
     int id2 = find_set(n2);
     ds[id1].parent = ds[id2].parent;
+    
+    ds[id2].size += ds[id1].size;
+    if(ds[id2].size > max_group_size) max_group_size = ds[id2].size;
+
+    dset_size -= 1;
 }
 
 
@@ -116,7 +129,7 @@ int main(){
 
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == group_analyse){
-            printf("-----------group_analyse query-----------\n");
+            //printf("-----------group_analyse query-----------\n");
             int n = queries[i].data.group_analyse_data.len;
             int *ids = queries[i].data.group_analyse_data.mids;
             dset_init(ds);
@@ -130,7 +143,12 @@ int main(){
                 //printf("To:%s\n", to);
                 Union(from, to);
             }
-        
+            int ans[2];
+            ans[0] = dset_size;
+            ans[1] = max_group_size;
+            api.answer(i, ans, 2);
+            //printf("number of groups:%d\n", dset_size);
+            //printf("size of largest group:%d\n", max_group_size);
         }
     }
     
