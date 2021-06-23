@@ -67,30 +67,25 @@ int get_name_id(trie_node *root, char *w){
 
 }
 
-//show content of the Trie
-void show(trie_node *root, int level){
-    level += 1;
-    for(int i=0; i<26; i++){
-        if(root->child[i] != NULL){
-            for(int i=1; i<level; i++) printf("-");
-            printf("%c", i+'a');
-            if(root->child[i]->is_name) printf(" name id: %d", root->child[i]->id);
-            printf("\n");
-
-            show(root->child[i], level);
-        }
-    }
-}
-
 void make_set(int i){
     ds[i].parent = i;
     ds[i].size = 1;
 }
 
 int get_root(int i){
-    //path compression
-    if(ds[i].parent != i) ds[i].parent = get_root(ds[i].parent);
-    return ds[i].parent;
+    int i0 = i;
+	//path compression
+    while(ds[i].parent != i)
+		i = ds[i].parent;
+		
+	int temp;
+	while(i0 != i){
+		temp = ds[i0].parent;
+		ds[i0].parent = i;
+		i0 = temp;
+	}
+    
+	return i;
 }
 
 int find_set(char *name){
@@ -145,29 +140,20 @@ int main(){
 	mail *t_mail;
 	int n;
 	int *ids;
-	char *from, *to;
 	int ans[2];
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == group_analyse){
-            //printf("-----------group_analyse query-----------\n");
             n = queries[i].data.group_analyse_data.len;
             ids = queries[i].data.group_analyse_data.mids;
             dset_init(ds);
 
             for(int j=0; j<n; j++){
                 t_mail = &mails[ids[j]];
-            
-                from = t_mail->from;
-                to = t_mail->to;
-                //printf("From:%s\n", from);
-                //printf("To:%s\n", to);
-                Union(from, to);
+                Union(t_mail->from, t_mail->to);
             }
             ans[0] = group_num;
             ans[1] = max_group_size;
             api.answer(i, ans, 2);
-            //printf("number of groups:%d\n", group_num);
-            //printf("size of largest group:%d\n", max_group_size);
         }
     }
     
