@@ -95,7 +95,7 @@ int get_root(int i){
 
 int find_set(char *name){
     int id = get_name_id(trie_root, name);
-    if(ds[id].size < 0) make_set(id);
+    if(ds[id].size == 0) make_set(id);
 
     return get_root(id);
 }
@@ -139,6 +139,7 @@ int main(){
     
     trie_root = build_node(); //initialize root
 
+	mail *t_mail;
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == group_analyse){
             //printf("-----------group_analyse query-----------\n");
@@ -147,10 +148,10 @@ int main(){
             dset_init(ds);
 
             for(int j=0; j<n; j++){
-                mail t_mail = mails[ids[j]];
+                t_mail = &mails[ids[j]];
             
-                char *from = t_mail.from;
-                char *to = t_mail.to;
+                char *from = t_mail->from;
+                char *to = t_mail->to;
                 //printf("From:%s\n", from);
                 //printf("To:%s\n", to);
                 Union(from, to);
