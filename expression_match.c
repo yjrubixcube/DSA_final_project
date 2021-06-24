@@ -54,8 +54,10 @@ stack* spush(stack *stk, int type, bool exp, char *w){
     return new;
 }
 
-stack* spop(stack *stk){
-
+stack *spop(stack *stk){
+    stack *rtn = stk->next;
+    free(stk);
+    return rtn;
 }
 
 //create new node
@@ -209,8 +211,57 @@ bool eval(queue *q){
     stack *s = NULL;
     while (cur!=NULL)
     {
-        if (cur->type==)
+        switch (cur->type)
+        {
+        case 0:
+        case 2:
+        case 3:
+        case 4:
+            spush(s, cur->type, false, '\0');
+            break;
+        case 5:
+            //check if the token_id is in trie
+            //TODO
+            bool b;
+            spush(s, 5, b, '\0');
+            break;
+        case 1:
+            switch (s->next->type)
+            {
+            case 0:
+                bool buf = s->exp;
+                s=spop(s);
+                s=spop(s);
+                s = spush(s, 5, buf, '\0');
+                break;
+            case 2:
+                bool buf = s->exp;
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spush(s, 5, !buf, '\0');
+                break;
+            case 3:
+                bool b1 = s->exp, b2 = s->next->next->exp;
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spush(s, 5, b1&&b2, '\0');
+                break;
+            case 4:
+                bool b1 = s->exp, b2 = s->next->next->exp;
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spush(s, 5, b1||b2, '\0');
+                break;
+            }
+        }
+        cur = cur->next;
     }
+    return s->exp;
     
 
 }
