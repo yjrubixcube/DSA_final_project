@@ -35,6 +35,34 @@ typedef struct queue
     int len;
 }queue;
 
+//this will return the index of the name in the disjoint set
+int get_token_id(trie_node *root, char *w){
+    trie_node *cur = root;
+    int level = 0;
+    int index;
+
+    while(w[level] != '\0'){
+        //first character is in uppercase
+        if(w[level] <= '9') index = w[level] - '0';
+        else index = w[level]+10 - ((w[level]>='a') ? 'a' : 'A');
+
+        if(cur->child[index] == NULL){
+            cur->child[index] = build_node();
+        }
+        cur = cur->child[index];
+        level += 1;
+    }
+    
+
+    //the token doesn't exist
+    if(!cur->is_token){
+        cur->is_token = true;
+        cur->id = string_num;
+        string_num += 1;
+    }
+
+    return cur->id;
+}
 char token[100];
 void token_analysis(int mid, char *text, int index, trie_node *root){
     int i = 0;
@@ -104,34 +132,7 @@ trie_node* build_node(){
     return new;
 } 
 
-//this will return the index of the name in the disjoint set
-int get_token_id(trie_node *root, char *w){
-    trie_node *cur = root;
-    int level = 0;
-    int index;
 
-    while(w[level] != '\0'){
-        //first character is in uppercase
-        if(w[level] <= '9') index = w[level] - '0';
-        else index = w[level]+10 - ((w[level]>='a') ? 'a' : 'A');
-
-        if(cur->child[index] == NULL){
-            cur->child[index] = build_node();
-        }
-        cur = cur->child[index];
-        level += 1;
-    }
-    
-
-    //the token doesn't exist
-    if(!cur->is_token){
-        cur->is_token = true;
-        cur->id = string_num;
-        string_num += 1;
-    }
-
-    return cur->id;
-}
 //this will insert a token into the trie
 //prob replaces by token anal, can del
 void insert_token(trie_node *root, char *w){
@@ -249,6 +250,7 @@ bool eval(queue *q, int mid){
     stack *s = NULL;
     while (cur!=NULL)
     {
+        bool b=false, b1, b2;
         switch (cur->type)
         {
         case 0:
@@ -260,7 +262,7 @@ bool eval(queue *q, int mid){
         case 5:
             //check if the token_id is in trie
             //TODO
-            bool b = false;
+            //bool b = false;
             for (int i = 0;i<token_sets_len[mid];i++){
                 if (cur->id==token_sets[mid][i]){
                     b = true;
@@ -270,23 +272,25 @@ bool eval(queue *q, int mid){
             spush(s, 5, b, '\0');
             break;
         case 1:
+            //bool b1, b2;
             switch (s->next->type)
             {
             case 0:
-                bool buf = s->exp;
+                b1 = s->exp;
                 s=spop(s);
                 s=spop(s);
-                s = spush(s, 5, buf, '\0');
+                s = spush(s, 5, b1, '\0');
                 break;
             case 2:
-                bool buf = s->exp;
+                b1 = s->exp;
                 s = spop(s);
                 s = spop(s);
                 s = spop(s);
-                s = spush(s, 5, !buf, '\0');
+                s = spush(s, 5, !b1, '\0');
                 break;
             case 3:
-                bool b1 = s->exp, b2 = s->next->next->exp;
+                b1 = s->exp;
+                b2 = s->next->next->exp;
                 s = spop(s);
                 s = spop(s);
                 s = spop(s);
@@ -294,7 +298,8 @@ bool eval(queue *q, int mid){
                 s = spush(s, 5, b1&&b2, '\0');
                 break;
             case 4:
-                bool b1 = s->exp, b2 = s->next->next->exp;
+                b1 = s->exp;
+                b2 = s->next->next->exp;
                 s = spop(s);
                 s = spop(s);
                 s = spop(s);
