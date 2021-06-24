@@ -140,11 +140,10 @@ int main(){
                 token_check[token_sets[mid][j]] = mid;
             
             for(int j=0; j<n_mails; j++){
-                if(j == mid) continue;
-	            
-				index_s = (j > mid)? mid:j;
+                index_s = (j > mid)? mid:j;
 				index_b = mid + j - index_s;
-				if(calculated[index_s][index_b]){
+				if(j == mid) continue;
+				else if(calculated[index_s][index_b]){
 	            	similarity = sim_calculated[index_s][index_b];
 				}
 				else
