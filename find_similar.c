@@ -7,6 +7,7 @@ int string_num = 0;  //number of names stored in the trie
 int token_sets[10000][5000];
 int token_sets_len[10000];
 int token_check[140000];
+double sim_calculated[10000][10000];
 
 typedef struct trie_node{
     struct trie_node *child[36];
@@ -113,7 +114,9 @@ int main(){
     
     trie_root = build_node();
     for(int i=0; i<140000; i++) token_check[i] = -1;
-    
+    for(int i=0; i < 10000;i++)
+    	for(int j=i+1; j < 10000;j++)
+    		sim_calculated[i][j] = -1;
 
 	mail *t_mail;
 	int mid;
@@ -128,18 +131,10 @@ int main(){
         token_analysis(i, mails[i].content, 0, trie_root);
         token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
-    /* 
-    printf("%d", string_num); 
-    for(int i=0; i<n_mails; i++){
-        printf("mid:%d\n", i);
-        for(int j=0; j<token_sets_len[i]; j++){
-            printf("%d ", token_sets[i][j]);
-        }
-        printf("\n");
-    }*/
+
+    int index_s, index_b;
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == find_similar){
-            //printf("find_similar_query\n");
             mid = queries[i].data.find_similar_data.mid;
             thres = queries[i].data.find_similar_data.threshold;
             ans_len = 0;
@@ -149,23 +144,31 @@ int main(){
             
             for(int j=0; j<n_mails; j++){
                 if(j == mid) continue;
-                int intersect_count = 0;
-
-                for(int k=0; k<token_sets_len[j]; k++){
-                    if(token_check[token_sets[j][k]] == mid)
-                        intersect_count += 1;
-                }
+	            
+				index_s = (j > mid)? mid:j;
+				index_b = mid + j - index_s;
+				if(sim_calculated[index_s][index_b] >= 0){
+	            	similarity = sim_calculated[index_s][index_b];
+				}
+				else
+				{
+				    int intersect_count = 0;
+	
+	                for(int k=0; k<token_sets_len[j]; k++){
+	                    if(token_check[token_sets[j][k]] == mid)
+	                        intersect_count += 1;
+	                }
+	                
+	                similarity = (double) intersect_count / (token_sets_len[mid]+token_sets_len[j]-intersect_count);
+	                sim_calculated[index_s][index_b] = sim;
+	            }
                 
-                similarity = (double) intersect_count / (token_sets_len[mid]+token_sets_len[j]-intersect_count);
-                if(similarity > thres){
+				if(similarity > thres){
                     ans[ans_len] = j;
                     ans_len += 1;
-                    //printf("conunt:%d\n", intersect_count);
-                    //printf("similarity:%f\n", similarity);
                 }
-                //printf("thres:%f\n", thres);
             }
-            //api.answer(i, ans, ans_len);
+            api.answer(i, ans, ans_len);
         }
     }
     
