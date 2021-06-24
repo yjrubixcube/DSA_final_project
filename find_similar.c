@@ -91,8 +91,8 @@ void token_analysis(int mid, char *text, int index, trie_node *root){
         if(len > 0){
             token[len] = '\0';
             token_id = get_token_id(root, token);
-            if(token_check[token_id] != mid){
-                token_check[token_id] = mid;
+            if(token_check[token_id] != ((mid == 0) ? -1 : mid)){
+                token_check[token_id] = (mid == 0) ? -1 : mid;
                 token_sets[mid][index++] = token_id;
             }
         } 
@@ -114,7 +114,7 @@ int main(){
 	api.init(&n_mails, &n_queries, &mails, &queries);
     
     trie_root = build_node();
-    for(int i=0; i<140000; i++) token_check[i] = -1;
+    //for(int i=0; i<140000; i++) token_check[i] = -1;
 
 	mail *t_mail;
 	int mid;
@@ -123,13 +123,12 @@ int main(){
 	char *content;
 	int ans[10000];
     int ans_len = 0;
-    
+     
     
     for(int i=0; i<n_mails; i++){
         token_analysis(i, mails[i].content, 0, trie_root);
         token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
-
     int index_s, index_b;
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == find_similar){
@@ -168,6 +167,7 @@ int main(){
                 }
             }
             api.answer(i, ans, ans_len);
+            
         }
     }
     
