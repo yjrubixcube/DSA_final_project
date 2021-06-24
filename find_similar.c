@@ -57,23 +57,6 @@ int get_token_id(trie_node *root, char *w){
     return cur->id;
 }
 
-//show content of the Trie
-void show(trie_node *root, int level){
-    level += 1;
-    for(int i=0; i<36; i++){
-        if(root->child[i] != NULL){
-            for(int j=1; j<level; j++) printf("-");
-            if(i >= 10) printf("%c", i+'a'-10);
-            else printf("%c", i+'0');
-
-            if(root->child[i]->is_token) printf(" id:%d", root->child[i]->id);
-            printf("\n");
-
-            show(root->child[i], level);
-        }
-    }
-}
-
 char token[100];
 void token_analysis(int mid, char *text, int index, trie_node *root){
     int i = 0;
