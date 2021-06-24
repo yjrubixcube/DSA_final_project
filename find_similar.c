@@ -8,6 +8,7 @@ int token_sets[10000][5000];
 int token_sets_len[10000];
 int token_check[140000];
 double sim_calculated[10000][10000];
+bool calculated[10000][10000];
 
 typedef struct trie_node{
     struct trie_node *child[36];
@@ -114,9 +115,6 @@ int main(){
     
     trie_root = build_node();
     for(int i=0; i<140000; i++) token_check[i] = -1;
-    for(int i=0; i < 10000;i++)
-    	for(int j=i+1; j < 10000;j++)
-    		sim_calculated[i][j] = -1;
 
 	mail *t_mail;
 	int mid;
@@ -147,7 +145,7 @@ int main(){
 	            
 				index_s = (j > mid)? mid:j;
 				index_b = mid + j - index_s;
-				if(sim_calculated[index_s][index_b] >= 0){
+				if(calculated[index_s][index_b]){
 	            	similarity = sim_calculated[index_s][index_b];
 				}
 				else
@@ -160,7 +158,8 @@ int main(){
 	                }
 	                
 	                similarity = (double) intersect_count / (token_sets_len[mid]+token_sets_len[j]-intersect_count);
-	                sim_calculated[index_s][index_b] = sim;
+	                sim_calculated[index_s][index_b] = similarity;
+	                calculated[index_s][index_b] = true;
 	            }
                 
 				if(similarity > thres){
