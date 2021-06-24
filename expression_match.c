@@ -3,10 +3,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+int string_num = 0;  //number of names stored in the trie 
+int token_sets[10000][5000];
+int token_sets_len[10000];
+int token_check[140000];
+
 typedef struct trie_node{
     struct trie_node *child[36];
     int id;  //index in disjoint set array
-    bool is_name;
+    bool is_token;
 } trie_node;
 trie_node *trie_root; //trie for group_analyse
 
@@ -29,6 +34,34 @@ typedef struct queue
     qnode *head, *tail;
     int len;
 }queue;
+
+char token[100];
+void token_analysis(int mid, char *text, int index, trie_node *root){
+    int i = 0;
+    int token_id;
+    int len;
+
+    while(text[i] != '\0'){
+        len = 0;
+        while(('0'<=text[i] && text[i]<='9') || ('A'<=text[i] && text[i]<='Z') || ('a'<=text[i] && text[i]<='z')){ 
+            token[len] = text[i];
+            i += 1;
+            len += 1;
+        }
+
+        if(len > 0){
+            token[len] = '\0';
+            token_id = get_token_id(root, token);
+            if(token_check[token_id] != mid){
+                token_check[token_id] = mid;
+                token_sets[mid][index++] = token_id;
+            }
+        } 
+        if(text[i] != '\0')	
+			i += 1;
+    }
+    token_sets_len[mid] = index;
+}
 
 void qpush(queue *q, int type, int id){
     qnode *new = (qnode *)malloc(sizeof(qnode));
@@ -65,13 +98,42 @@ trie_node* build_node(){
     trie_node *new = (trie_node*)malloc(sizeof(trie_node));
     
     for(int i=0; i<36; i++) new->child[i] = NULL;
-    new->is_name = false;
+    new->is_token = false;
     new->id = -1;
 
     return new;
 } 
 
+//this will return the index of the name in the disjoint set
+int get_token_id(trie_node *root, char *w){
+    trie_node *cur = root;
+    int level = 0;
+    int index;
+
+    while(w[level] != '\0'){
+        //first character is in uppercase
+        if(w[level] <= '9') index = w[level] - '0';
+        else index = w[level]+10 - ((w[level]>='a') ? 'a' : 'A');
+
+        if(cur->child[index] == NULL){
+            cur->child[index] = build_node();
+        }
+        cur = cur->child[index];
+        level += 1;
+    }
+    
+
+    //the token doesn't exist
+    if(!cur->is_token){
+        cur->is_token = true;
+        cur->id = string_num;
+        string_num += 1;
+    }
+
+    return cur->id;
+}
 //this will insert a token into the trie
+//prob replaces by token anal, can del
 void insert_token(trie_node *root, char *w){
     trie_node *cur = root;
     int level = 0;
@@ -93,12 +155,13 @@ void insert_token(trie_node *root, char *w){
         cur = cur->child[index];
         level += 1;
     }
-    if (!cur->is_name){
-        cur->is_name = true;
+    if (!cur->is_token){
+        cur->is_token = true;
     }
 }
 
 //check if a token is in the trie
+//can delete
 bool check_token(trie_node *root, char *w, int length){
     trie_node *cur = root;
     int level = 0;
@@ -126,7 +189,7 @@ bool check_token(trie_node *root, char *w, int length){
     }
     
     //if the token dne
-    if (!cur->is_name){
+    if (!cur->is_token){
         flag = false;
     }
 
@@ -145,10 +208,10 @@ void preprocess(char *exp, trie_node *root, stack *stk, queue *q){
         }
         if (length>0){
             char ins[length], temp = exp[index+length];
-            int token_id;
             exp[index+length]='\0';
             strcpy(ins, exp+index);
-            insert_token(root, ins);
+            int token_id = get_token_id(root, ins);
+            //insert_token(root, ins);
             qpush(q, 5, token_id);
             exp[index+length]=temp;
             index+=length;
@@ -181,7 +244,7 @@ void preprocess(char *exp, trie_node *root, stack *stk, queue *q){
 }
 
 //TODO maybe add parameter of which mail
-bool eval(queue *q){
+bool eval(queue *q, int mid){
     qnode *cur = q->head;
     stack *s = NULL;
     while (cur!=NULL)
@@ -197,7 +260,13 @@ bool eval(queue *q){
         case 5:
             //check if the token_id is in trie
             //TODO
-            bool b;
+            bool b = false;
+            for (int i = 0;i<token_sets_len[mid];i++){
+                if (cur->id==token_sets[mid][i]){
+                    b = true;
+                    break;
+                }
+            }
             spush(s, 5, b, '\0');
             break;
         case 1:
@@ -252,9 +321,16 @@ int main(){
 	api.init(&n_mails, &n_queries, &mails, &queries);
     
     trie_root = build_node(); //initialize root
-
+    for(int i=0; i<140000; i++) token_check[i] = -1;
+    
 	mail *t_mail;
 	int n;
+
+    for(int i=0; i<n_mails; i++){
+        token_analysis(i, mails[i].content, 0, trie_root);
+        //token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
+    }
+
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             //make a trie for each mail
@@ -265,9 +341,10 @@ int main(){
             q->head = NULL;
             q->tail = NULL;
             q->len = 0;
-            int ids[n_mails]={0}, counter=0;
+
+            int ids[10000]={0}, counter=0;
             for (int j = 0;j<n_mails;j++){
-                if (eval(q)){ //TODO
+                if (eval(q, j)){ //TODO
                     ids[counter]=j;
                     counter++;
                 }
