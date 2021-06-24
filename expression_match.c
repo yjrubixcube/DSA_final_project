@@ -18,7 +18,7 @@ trie_node *trie_root; //trie for group_analyse
 typedef struct stack
 {
     struct stack *next;
-    int type; //0:(, 1:), 2:not, 3:and, 4:or, 5:bool
+    int type, ssize; //0:(, 1:), 2:not, 3:and, 4:or, 5:bool
     bool exp;
 }stack;
 
@@ -105,6 +105,7 @@ void qpush(queue *q, int type, int id){
     qnode *new = (qnode *)malloc(sizeof(qnode));
     new->id = id;
     new->type = type;
+    new->next = NULL;
     if (q->len==0){
         q->head = new;
         q->tail = new;
@@ -121,6 +122,7 @@ stack* spush(stack *stk, int type, bool exp){
     new->type = type;
     new->exp = (type==5) ? exp : false;
     new->next = stk;
+    new->ssize = (stk==NULL) ? 1 : 1+stk->ssize;
     return new;
 }
 
@@ -137,7 +139,7 @@ void preprocess(char *exp, trie_node *root, queue *q){
     int index = 0;
     while(exp[index]!='\0'){
         int length=0;
-        while ((exp[index+length]<='z' && exp[index+length]>='A')|| (exp[index+length] <= '9' && exp[index+length] >= '0')){
+        while ((exp[index+length]<='z' && exp[index+length]>='a')||(exp[index+length]<='Z' && exp[index+length]>='A')|| (exp[index+length] <= '9' && exp[index+length] >= '0')){
             length+=1;
         }
         if (length>0){
@@ -205,42 +207,67 @@ bool eval(queue *q, int mid){
             break;
         case 1:
             //bool b1, b2;
-            switch (s->next->type)
-            {
-            case 0:
-                b1 = s->exp;
-                s=spop(s);
-                s=spop(s);
-                s = spush(s, 5, b1);
-                break;
-            case 2:
-                b1 = s->exp;
-                s = spop(s);
+            b1 = s->exp;
+            s = spop(s);
+            if (s->type == 2){
                 s = spop(s);
                 s = spop(s);
                 s = spush(s, 5, !b1);
-                break;
-            case 3:
-                b1 = s->exp;
-                b2 = s->next->next->exp;
+            }
+            else if (s->type == 0){
                 s = spop(s);
-                s = spop(s);
-                s = spop(s);
-                s = spop(s);
-                s = spush(s, 5, b1&&b2);
-                break;
-            case 4:
-                b1 = s->exp;
-                b2 = s->next->next->exp;
-                s = spop(s);
-                s = spop(s);
-                s = spop(s);
-                s = spop(s);
-                s = spush(s, 5, b1||b2);
-                break;
+                s = spush(s, 5, b1);
+            }
+
+            if (s->ssize>=3){
+                if (s->next->type == 2){
+                    b1 = s->exp;
+                    s = spop(s);
+                    s = spop(s);
+                    s = spush(s, 5, !b1);
+                }
+                else if (s->next->type == 3){
+                    b1 = s->exp;
+                    s = spop(s);
+                    s = spop(s);
+                    b2 = s->exp;
+                    s = spop(s);
+                    s = spush(s, 5, b1&&b2);
+                }
+                else if (s->next->type == 4){
+                    b1 = s->exp;
+                    s = spop(s);
+                    s = spop(s);
+                    b2 = s->exp;
+                    s = spop(s);
+                    s = spush(s, 5, b1||b2);
+                }
             }
         }
         cur = cur->next;
+    }
+    bool b1, b2;
+    while (s->ssize>=2){
+        if (s->next->type==2){
+            b1 = s->exp;
+            s = spop(s);
+            s = spop(s);
+            s = spush(s, 5, !b1);
+        }else if (s->next->type == 3){
+            b1 = s->exp;
+            s = spop(s);
+            s = spop(s);
+            b2 = s->exp;
+            s = spop(s);
+            s = spush(s, 5, b1&&b2);
+        }else if (s->next->type == 4){
+            b1 = s->exp;
+            s = spop(s);
+            s = spop(s);
+            b2 = s->exp;
+            s = spop(s);
+            s = spush(s, 5, b1||b2);
+        }
     }
     return s->exp;
     
@@ -265,7 +292,7 @@ int main(){
 
     for(int i=0; i<n_mails; i++){
         token_analysis(i, mails[i].content, 0, trie_root);
-        //token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
+        token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
 
 	for(int i = 0; i < n_queries; i++){
