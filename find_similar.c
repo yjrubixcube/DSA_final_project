@@ -11,7 +11,7 @@ int token_check[140000];
 typedef struct trie_node{
     struct trie_node *child[36];
     int id;  //index in disjoint set array
-    bool is_name;
+    bool is_token;
 } trie_node;
 trie_node *trie_root;
 
@@ -20,7 +20,7 @@ trie_node* build_node(){
     trie_node *new = (trie_node*)malloc(sizeof(trie_node));
     
     for(int i=0; i<36; i++) new->child[i] = NULL;
-    new->is_name = false;
+    new->is_token = false;
     new->id = -1;
 
     return new;
@@ -46,8 +46,8 @@ int get_token_id(trie_node *root, char *w){
     
 
     //the token doesn't exist
-    if(!cur->is_name){
-        cur->is_name = true;
+    if(!cur->is_token){
+        cur->is_token = true;
         cur->id = string_num;
         string_num += 1;
     }
@@ -64,7 +64,7 @@ void show(trie_node *root, int level){
             if(i >= 10) printf("%c", i+'a'-10);
             else printf("%c", i+'0');
 
-            if(root->child[i]->is_name) printf(" id:%d", root->child[i]->id);
+            if(root->child[i]->is_token) printf(" id:%d", root->child[i]->id);
             printf("\n");
 
             show(root->child[i], level);
@@ -72,9 +72,9 @@ void show(trie_node *root, int level){
     }
 }
 
+char token[100];
 void token_analysis(int mid, char *text, int index, trie_node *root){
     int i = 0;
-    char token[100];
     int token_id;
     int len;
 
@@ -94,7 +94,8 @@ void token_analysis(int mid, char *text, int index, trie_node *root){
                 token_sets[mid][index++] = token_id;
             }
         } 
-        i += 1;
+        if(text[i] != '\0')	
+			i += 1;
     }
     token_sets_len[mid] = index;
 }
@@ -119,7 +120,7 @@ int main(){
 	double thres;
     double similarity;
 	char *content;
-	int ans[100];
+	int ans[10000];
     int ans_len = 0;
     
     
@@ -155,7 +156,7 @@ int main(){
                         intersect_count += 1;
                 }
                 
-                similarity = intersect_count / (token_sets_len[mid]+token_sets_len[j]-intersect_count);
+                similarity = (double) intersect_count / (token_sets_len[mid]+token_sets_len[j]-intersect_count);
                 if(similarity > thres){
                     ans[ans_len] = j;
                     ans_len += 1;
