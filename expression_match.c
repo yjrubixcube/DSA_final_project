@@ -13,7 +13,7 @@ trie_node *trie_root; //trie for group_analyse
 typedef struct stack
 {
     struct stack *next;
-    int type; //0:(, 1:), 2:not, 3:and, 4:or, 5:bool, 6:token
+    int type; //0:(, 1:), 2:not, 3:and, 4:or, 5:bool
     bool exp;
     char *token;
 }stack;
@@ -54,8 +54,10 @@ stack* spush(stack *stk, int type, bool exp, char *w){
     return new;
 }
 
-stack* spop(stack *stk){
-
+stack *spop(stack *stk){
+    stack *rtn = stk->next;
+    free(stk);
+    return rtn;
 }
 
 //create new node
@@ -68,33 +70,6 @@ trie_node* build_node(){
 
     return new;
 } 
-
-//this will return the index of the name in the disjoint set
-int get_name_id(trie_node *root, char *w){
-    trie_node *cur = root;
-    int level = 0;
-    int index;
-
-    while(w[level] != '\0'){
-        //first character is in uppercase
-        index = w[level] - ((w[level]>='a') ? 'a' : 'A');
-        if(cur->child[index] == NULL){
-            cur->child[index] = build_node();
-        }
-        cur = cur->child[index];
-        level += 1;
-    }
-    
-    //the name doesn't exist
-    if(!cur->is_name){
-        cur->is_name = true;
-        //cur->id = string_num;
-        //string_num += 1;
-    }
-
-    return cur->id; 
-
-}
 
 //this will insert a token into the trie
 void insert_token(trie_node *root, char *w){
@@ -123,6 +98,7 @@ void insert_token(trie_node *root, char *w){
     }
 }
 
+//check if a token is in the trie
 bool check_token(trie_node *root, char *w, int length){
     trie_node *cur = root;
     int level = 0;
@@ -204,13 +180,63 @@ void preprocess(char *exp, trie_node *root, stack *stk, queue *q){
     }
 }
 
+//TODO maybe add parameter of which mail
 bool eval(queue *q){
     qnode *cur = q->head;
     stack *s = NULL;
     while (cur!=NULL)
     {
-        if (cur->type==)
+        switch (cur->type)
+        {
+        case 0:
+        case 2:
+        case 3:
+        case 4:
+            spush(s, cur->type, false, '\0');
+            break;
+        case 5:
+            //check if the token_id is in trie
+            //TODO
+            bool b;
+            spush(s, 5, b, '\0');
+            break;
+        case 1:
+            switch (s->next->type)
+            {
+            case 0:
+                bool buf = s->exp;
+                s=spop(s);
+                s=spop(s);
+                s = spush(s, 5, buf, '\0');
+                break;
+            case 2:
+                bool buf = s->exp;
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spush(s, 5, !buf, '\0');
+                break;
+            case 3:
+                bool b1 = s->exp, b2 = s->next->next->exp;
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spush(s, 5, b1&&b2, '\0');
+                break;
+            case 4:
+                bool b1 = s->exp, b2 = s->next->next->exp;
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spop(s);
+                s = spush(s, 5, b1||b2, '\0');
+                break;
+            }
+        }
+        cur = cur->next;
     }
+    return s->exp;
     
 
 }
@@ -229,8 +255,6 @@ int main(){
 
 	mail *t_mail;
 	int n;
-	int *ids;
-	int ans[2];
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             //make a trie for each mail
@@ -241,10 +265,14 @@ int main(){
             q->head = NULL;
             q->tail = NULL;
             q->len = 0;
-            for (int j = 0;j<n;j++){
-
+            int ids[n_mails]={0}, counter=0;
+            for (int j = 0;j<n_mails;j++){
+                if (eval(q)){ //TODO
+                    ids[counter]=j;
+                    counter++;
+                }
             }
-
+            api.answer(i, ids, counter);
         }
     }
     
