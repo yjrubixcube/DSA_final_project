@@ -20,7 +20,6 @@ typedef struct stack
     struct stack *next;
     int type; //0:(, 1:), 2:not, 3:and, 4:or, 5:bool
     bool exp;
-    char *token;
 }stack;
 
 typedef struct qnode
@@ -35,6 +34,17 @@ typedef struct queue
     int len;
 }queue;
 
+
+//create new node
+trie_node* build_node(){
+    trie_node *new = (trie_node*)malloc(sizeof(trie_node));
+    
+    for(int i=0; i<36; i++) new->child[i] = NULL;
+    new->is_token = false;
+    new->id = -1;
+
+    return new;
+} 
 //this will return the index of the name in the disjoint set
 int get_token_id(trie_node *root, char *w){
     trie_node *cur = root;
@@ -106,11 +116,10 @@ void qpush(queue *q, int type, int id){
     q->len++;
 }
 
-stack* spush(stack *stk, int type, bool exp, char *w){
+stack* spush(stack *stk, int type, bool exp){
     stack *new = (stack*)malloc(sizeof(stack));
     new->type = type;
     new->exp = (type==5) ? exp : false;
-    new->token = w;
     new->next = stk;
     return new;
 }
@@ -121,86 +130,10 @@ stack *spop(stack *stk){
     return rtn;
 }
 
-//create new node
-trie_node* build_node(){
-    trie_node *new = (trie_node*)malloc(sizeof(trie_node));
-    
-    for(int i=0; i<36; i++) new->child[i] = NULL;
-    new->is_token = false;
-    new->id = -1;
-
-    return new;
-} 
-
-
-//this will insert a token into the trie
-//prob replaces by token anal, can del
-void insert_token(trie_node *root, char *w){
-    trie_node *cur = root;
-    int level = 0;
-    int index;
-
-    while(w[level] != '\0'){
-        if (w[level]>='a'){
-            index = w[level]-'a';
-        }
-        else if (w[level]>='A'){
-            index = w[level]-'A';
-        }
-        else if (w[level]>='0'){
-            index = w[level]-'0'+26;
-        }
-        if(cur->child[index] == NULL){
-            cur->child[index] = build_node();
-        }
-        cur = cur->child[index];
-        level += 1;
-    }
-    if (!cur->is_token){
-        cur->is_token = true;
-    }
-}
-
-//check if a token is in the trie
-//can delete
-bool check_token(trie_node *root, char *w, int length){
-    trie_node *cur = root;
-    int level = 0;
-    int index;
-    bool flag = true;
-
-    while (level<length && flag){
-        if (w[level]>='a'){
-            index = w[level]-'a';
-        }
-        else if (w[level]>='A'){
-            index = w[level]-'A';
-        }
-        else if (w[level]>='0'){
-            index = w[level]-'0'+26;
-        }
-
-        if (cur->child[index] == NULL){
-            flag = false;
-        }
-        else{
-            cur = cur->child[index];
-            level++;
-        }
-    }
-    
-    //if the token dne
-    if (!cur->is_token){
-        flag = false;
-    }
-
-    return flag;
-}
-
 //this adds all the tokens in the expression into trie
 //TODO
 //makes a queue of expression
-void preprocess(char *exp, trie_node *root, stack *stk, queue *q){
+void preprocess(char *exp, trie_node *root, queue *q){
     int index = 0;
     while(exp[index]!='\0'){
         int length=0;
@@ -212,7 +145,6 @@ void preprocess(char *exp, trie_node *root, stack *stk, queue *q){
             exp[index+length]='\0';
             strcpy(ins, exp+index);
             int token_id = get_token_id(root, ins);
-            //insert_token(root, ins);
             qpush(q, 5, token_id);
             exp[index+length]=temp;
             index+=length;
@@ -257,7 +189,7 @@ bool eval(queue *q, int mid){
         case 2:
         case 3:
         case 4:
-            spush(s, cur->type, false, '\0');
+            spush(s, cur->type, false);
             break;
         case 5:
             //check if the token_id is in trie
@@ -269,7 +201,7 @@ bool eval(queue *q, int mid){
                     break;
                 }
             }
-            spush(s, 5, b, '\0');
+            spush(s, 5, b);
             break;
         case 1:
             //bool b1, b2;
@@ -279,14 +211,14 @@ bool eval(queue *q, int mid){
                 b1 = s->exp;
                 s=spop(s);
                 s=spop(s);
-                s = spush(s, 5, b1, '\0');
+                s = spush(s, 5, b1);
                 break;
             case 2:
                 b1 = s->exp;
                 s = spop(s);
                 s = spop(s);
                 s = spop(s);
-                s = spush(s, 5, !b1, '\0');
+                s = spush(s, 5, !b1);
                 break;
             case 3:
                 b1 = s->exp;
@@ -295,7 +227,7 @@ bool eval(queue *q, int mid){
                 s = spop(s);
                 s = spop(s);
                 s = spop(s);
-                s = spush(s, 5, b1&&b2, '\0');
+                s = spush(s, 5, b1&&b2);
                 break;
             case 4:
                 b1 = s->exp;
@@ -304,7 +236,7 @@ bool eval(queue *q, int mid){
                 s = spop(s);
                 s = spop(s);
                 s = spop(s);
-                s = spush(s, 5, b1||b2, '\0');
+                s = spush(s, 5, b1||b2);
                 break;
             }
         }
@@ -338,15 +270,12 @@ int main(){
 
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
-            //make a trie for each mail
-            //eval the expression
-            //for all token
             char *expression = queries[i].data.expression_match_data.expression;
             queue *q = (queue *)malloc(sizeof(queue));
             q->head = NULL;
             q->tail = NULL;
             q->len = 0;
-
+            preprocess(expression, trie_root, q);
             int ids[10000]={0}, counter=0;
             for (int j = 0;j<n_mails;j++){
                 if (eval(q, j)){ //TODO
