@@ -160,7 +160,7 @@ int main(){
 	                }
 	                
 	                similarity = (double) intersect_count / (token_sets_len[mid]+token_sets_len[j]-intersect_count);
-	                sim_calculated[index_s][index_b] = sim;
+	                sim_calculated[index_s][index_b] = similarity;
 	            }
                 
 				if(similarity > thres){
