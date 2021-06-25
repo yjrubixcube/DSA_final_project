@@ -90,8 +90,8 @@ void token_analysis(int mid, char *text, int index, trie_node *root){
         if(len > 0){
             token[len] = '\0';
             token_id = get_token_id(root, token);
-            if(token_check[token_id] != mid){
-                token_check[token_id] = mid;
+            if(token_check[token_id] != ((mid == 0) ? -1 : mid)){
+                token_check[token_id] = (mid == 0) ? -1 : mid;
                 token_sets[mid][index++] = token_id;
             }
         } 
@@ -289,12 +289,12 @@ int main(){
     
 	mail *t_mail;
 	int n;
-
+    printf("anal\n");
     for(int i=0; i<n_mails; i++){
         token_analysis(i, mails[i].content, 0, trie_root);
         token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
-
+    printf("done anal\n");
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             char *expression = queries[i].data.expression_match_data.expression;
@@ -302,14 +302,18 @@ int main(){
             q->head = NULL;
             q->tail = NULL;
             q->len = 0;
+            printf("preprocess\n");
             preprocess(expression, trie_root, q);
             int ids[10000]={0}, counter=0;
+            printf("done pp\n");
             for (int j = 0;j<n_mails;j++){
+                printf("%d, ", j);
                 if (eval(q, j)){ //TODO
                     ids[counter]=j;
                     counter++;
                 }
             }
+            printf("%d, %d", i, counter);
             api.answer(i, ids, counter);
         }
     }
