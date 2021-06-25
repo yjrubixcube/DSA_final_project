@@ -191,7 +191,7 @@ bool eval(queue *q, int mid){
         case 2:
         case 3:
         case 4:
-            spush(s, cur->type, false);
+            s = spush(s, cur->type, false);
             break;
         case 5:
             //check if the token_id is in trie
@@ -203,7 +203,7 @@ bool eval(queue *q, int mid){
                     break;
                 }
             }
-            spush(s, 5, b);
+            s = spush(s, 5, b);
             break;
         case 1:
             //bool b1, b2;
@@ -289,12 +289,12 @@ int main(){
     
 	mail *t_mail;
 	int n;
-    printf("anal\n");
+    //printf("anal\n");
     for(int i=0; i<n_mails; i++){
         token_analysis(i, mails[i].content, 0, trie_root);
         token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
-    printf("done anal\n");
+    //printf("done anal\n");
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             char *expression = queries[i].data.expression_match_data.expression;
@@ -302,18 +302,18 @@ int main(){
             q->head = NULL;
             q->tail = NULL;
             q->len = 0;
-            printf("preprocess\n");
+            //printf("preprocess\n");
             preprocess(expression, trie_root, q);
             int ids[10000]={0}, counter=0;
-            printf("done pp\n");
+            //printf("done pp\n");
             for (int j = 0;j<n_mails;j++){
-                printf("%d, ", j);
+                //printf("%d, ", j);
                 if (eval(q, j)){ //TODO
                     ids[counter]=j;
                     counter++;
                 }
             }
-            printf("%d, %d", i, counter);
+            //printf("%d, %d\n", i, counter);
             api.answer(i, ids, counter);
         }
     }
