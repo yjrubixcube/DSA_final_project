@@ -4,9 +4,14 @@
 #include <stdbool.h>
 
 int string_num = 0;  //number of names stored in the trie 
+int q_num=0, s_num=0, bs_num=0;
 int token_sets[10000][5000];
 int token_sets_len[10000];
 int token_check[140000];
+int queue_arr[3000][2]; //0 type 1 id
+int stack_arr[3000][2];
+int buffer_stack_arr[3000][2];
+int **sa = stack_arr, **bsa = buffer_stack_arr;
 
 typedef struct trie_node{
     struct trie_node *child[36];
@@ -15,7 +20,7 @@ typedef struct trie_node{
 } trie_node;
 trie_node *trie_root; //trie for group_analyse
 
-typedef struct stack
+/*typedef struct stack
 {
     struct stack *next;
     int type, ssize; //0:(, 1:), 2:not, 3:and, 4:or, 5:bool
@@ -33,7 +38,7 @@ typedef struct queue
     qnode *head, *tail;
     int len;
 }queue;
-
+*/
 
 //create new node
 trie_node* build_node(){
@@ -101,44 +106,28 @@ void token_analysis(int mid, char *text, int index, trie_node *root){
     token_sets_len[mid] = index;
 }
 
-void qpush(queue *q, int type, int id){
-    qnode *new = (qnode *)malloc(sizeof(qnode));
-    new->id = id;
-    new->type = type;
-    new->next = NULL;
-    if (q->len==0){
-        q->head = new;
-        q->tail = new;
-    }
-    else{
-        q->tail->next = new;
-        q->tail = new;
-    }
-    q->len++;
+void qpush(int type, int id){
+    queue_arr[q_num][0] = type;
+    queue_arr[q_num][1] = id;
+    q_num++;
 }
 
-void spush(stack **stk, int type, bool exp){
-    stack *new = (stack*)malloc(sizeof(stack));
-    new->type = type;
-    new->exp = (type==5) ? exp : false;
-    new->next = *stk;
-    new->ssize = (*stk==NULL) ? 1 : 1+(*stk)->ssize;
-    //return new;
-    *stk = new;
+void spush(int **arr, int type, bool exp, bool which){//0 for s, 1 for buffer
+    arr[s_num][0] = type;
+    arr[s_num][1] = exp;
+    (which)? bs_num++ : s_num++;
 }
 
-void spop(stack **stk){
-    stack *buf = (*stk)->next, *rtn = *stk;
-    free(rtn);
-    *stk = buf;
-    //return rtn;
+void spop(bool which){
+    (which)? bs_num++ : s_num++;
 }
 
 //this adds all the tokens in the expression into trie
 //TODO
 //makes a queue of expression
-void preprocess(char *exp, trie_node *root, queue *q){
+void preprocess(char *exp, trie_node *root){
     int index = 0;
+    q_num = 0;
     while(exp[index]!='\0'){
         int length=0;
         while ((exp[index+length]<='z' && exp[index+length]>='a')||(exp[index+length]<='Z' && exp[index+length]>='A')|| (exp[index+length] <= '9' && exp[index+length] >= '0')){
@@ -149,30 +138,30 @@ void preprocess(char *exp, trie_node *root, queue *q){
             exp[index+length]='\0';
             strcpy(ins, exp+index);
             int token_id = get_token_id(root, ins);
-            qpush(q, 5, token_id);
+            qpush(5, token_id);
             exp[index+length]=temp;
             index+=length;
         }else{
             switch (exp[index])
             {
             case '(':
-                qpush(q, 0, -1);
+                qpush(0, -1);
                 break;
             
             case ')':
-                qpush(q, 1, -1);
+                qpush(1, -1);
                 break;
             
             case '!':
-                qpush(q, 2, -1);
+                qpush(2, -1);
                 break;
 
             case '&':
-                qpush(q, 3, -1);
+                qpush(3, -1);
                 break;
 
             case '|':
-                qpush(q, 4, -1);
+                qpush(4, -1);
                 break;
             }
             index+=1;
@@ -180,88 +169,112 @@ void preprocess(char *exp, trie_node *root, queue *q){
     }
 }
 
-void push_opr(stack **s, int opr, bool eval){
-    if (eval){
-        bool e1 = (*s)->exp, e2;
-        spop(s);
-        if (opr == 3){//and
-            e2 = (*s)->exp;
-            spop(s);
-            spush(s, 5, e1&&e2);
+void push_opr(int **s, int opr, bool eval, bool which){//0 for s, 1 for buffer
+    if (which){
+        if (eval){
+            bool e1 = buffer_stack_arr[bs_num][1], e2;
+            spop(which);
+            if (opr == 3){//and
+                e2 = (bool)buffer_stack_arr[bs_num][1];
+                spop(which);
+                spush(s, 5, e1&&e2, which);
+            }
+            else if (opr == 4){//or
+                e2 = (bool)buffer_stack_arr[bs_num][1];
+                spop(which);
+                spush(s, 5, e1||e2, which);
+            }
+            else if (opr == 2){//not
+                spush(s, 5, !e1, which);
+            }
         }
-        else if (opr == 4){//or
-            e2 = (*s)->exp;
-            spop(s);
-            spush(s, 5, e1||e2);
-        }
-        else if (opr == 2){//not
-            spush(s, 5, !e1);
+        else{
+            spush(s, opr, false, which);
         }
     }
     else{
-        spush(s, opr, false);
+        if (eval){
+            bool e1 = stack_arr[s_num][1], e2;
+            spop(which);
+            if (opr == 3){//and
+                e2 = stack_arr[s_num][1];
+                spop(which);
+                spush(s, 5, e1&&e2, which);
+            }
+            else if (opr == 4){//or
+                e2 = stack_arr[s_num][1];
+                spop(which);
+                spush(s, 5, e1||e2, which);
+            }
+            else if (opr == 2){//not
+                spush(s, 5, !e1, which);
+            }
+        }
+        else{
+            spush(s, opr, false, which);
+        }
     }
 }
 
 //TODO maybe add parameter of which mail
-bool eval(queue *q, int mid){
-    qnode *cur = q->head;
-    
-    stack *s=NULL, *buf_s = NULL; 
-    while (cur!=NULL){
-        if (cur->type<5){//is oprerator
-            if (cur->type == 4){//or
-                while (buf_s!=NULL && buf_s->type!= 0 && buf_s->type!=2){
-                    push_opr(&s, buf_s->type, true);
-                    spop(&buf_s);
+bool eval(int mid){
+    int cur = 0;
+    bs_num = 0;
+    s_num = 0;
+    while (cur<q_num){
+        if (queue_arr[cur][0]<5){//is oprerator
+            if (queue_arr[cur][0] == 4){//or
+                while (bs_num>0 && buffer_stack_arr[bs_num][0]!= 0 && buffer_stack_arr[bs_num][0]!=2){
+                    push_opr(sa, buffer_stack_arr[bs_num][0], true, 0);
+                    spop(1);
                 }
-                push_opr(&buf_s, cur->type, false);
+                push_opr(bsa, queue_arr[cur][0], false, 1);
             }
-            else if (cur->type == 3){//and
-                while (buf_s!=NULL && buf_s->type!=0 && buf_s->type!=2 && buf_s->type!=4){
-                    push_opr(&s, buf_s->type, true);
-                    spop(&buf_s);
+            else if (queue_arr[cur][0] == 3){//and
+                while (bs_num>0 && buffer_stack_arr[bs_num][0]!=0 && buffer_stack_arr[bs_num][0]!=2 && buffer_stack_arr[bs_num][0]!=4){
+                    push_opr(sa, buffer_stack_arr[bs_num][0], true, 0);
+                    spop(1);
                 }
-                push_opr(&buf_s, cur->type, false);
+                push_opr(bsa, queue_arr[cur][0], false, 1);
                 
             }
-            else if (cur->type == 2){//not
-                while (buf_s!=NULL && buf_s->type!=0){
-                    push_opr(&s, buf_s->type, true);
-                    spop(&buf_s);
+            else if (queue_arr[cur][0] == 2){//not
+                while (bs_num>0 && buffer_stack_arr[bs_num][0]!=0){
+                    push_opr(sa, buffer_stack_arr[bs_num][0], true, 0);
+                    spop(1);
                 }
-                push_opr(&buf_s, cur->type, false);
+                push_opr(bsa, queue_arr[cur][0], false, 1);
 
             }
-            else if (cur->type == 1){//)
-                while (buf_s!=NULL && buf_s->type!= 0){
-                    push_opr(&s, buf_s->type, true);
-                    spop(&buf_s);
+            else if (queue_arr[cur][0] == 1){//)
+                while (bs_num>0 && buffer_stack_arr[bs_num][0]!= 0){
+                    push_opr(sa, buffer_stack_arr[bs_num][0], true, 0);
+                    spop(1);
                 }
-                spop(&buf_s);
+                spop(1);
             }
             else{//(
-                push_opr(&buf_s, cur->type, false);
+                push_opr(bsa, queue_arr[cur][0], false, 1);
             }
         }
         else{//is id
             bool flag=false;
             for (int i = 0;i<token_sets_len[mid];i++){
-                if (cur->id == token_sets[mid][i]){
+                if (queue_arr[cur][1] == token_sets[mid][i]){
                     flag = true;
                     break;
                 }
             }
-            spush(&s, 5, flag);
+            spush(sa, 5, flag, 0);
         }
-        cur = cur->next;
+        cur++;
     }
-    while (buf_s!=NULL){
-        push_opr(&s, buf_s->type, 1);
-        spop(&buf_s);
+    while (bs_num>0){
+        push_opr(sa, buffer_stack_arr[bs_num][0], true, 0);
+        spop(1);
     }
     
-    return s->exp;
+    return stack_arr[0][1];
 }
 // The testdata only contains the first 100 mails (mail1 ~ mail100)
 // and 2000 queries for you to debug.
@@ -279,26 +292,23 @@ int main(){
     
 	mail *t_mail;
 	int n;
-    //printf("anal\n");
+    printf("anal\n");
     for(int i=0; i<n_mails; i++){
         token_analysis(i, mails[i].content, 0, trie_root);
         token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
-    //printf("done anal\n");
+    printf("done anal\n");
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             char *expression = queries[i].data.expression_match_data.expression;
-            queue *q = (queue *)malloc(sizeof(queue));
-            q->head = NULL;
-            q->tail = NULL;
-            q->len = 0;
-            //printf("preprocess\n");
-            preprocess(expression, trie_root, q);
+            q_num = 0;
+            printf("preprocess\n");
+            preprocess(expression, trie_root);
             int ids[10000]={0}, counter=0;
-            //printf("done pp\n");
+            printf("done pp\n");
             for (int j = 0;j<n_mails;j++){
                 //printf("%d, ", j);
-                if (eval(q, j)){ //TODO
+                if (eval(j)){ //TODO
                     ids[counter]=j;
                     counter++;
                 }
