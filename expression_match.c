@@ -130,9 +130,11 @@ void spop(bool which){
     //(which)? bs_num++ : s_num++;
     if (which){
         bs_num--;
+        bs_num = (bs_num)? 0 : bs_num;
     }
     else{
         s_num--;
+        s_num = (s_num<=0)? 0 : s_num;
     }
 }
 
@@ -287,7 +289,7 @@ bool eval(int mid){
         push_opr(buffer_stack_arr[bs_num][0], true, 0);
         spop(1);
     }
-    
+    //printf("%d\n", s_num);
     return stack_arr[0][1];
 }
 // The testdata only contains the first 100 mails (mail1 ~ mail100)
@@ -306,20 +308,20 @@ int main(){
     
 	mail *t_mail;
 	int n;
-    printf("anal\n");
+    //printf("anal\n");
     for(int i=0; i<n_mails; i++){
         token_analysis(i, mails[i].content, 0, trie_root);
         token_analysis(i, mails[i].subject, token_sets_len[i], trie_root);
     }
-    printf("done anal\n");
+    //printf("done anal\n");
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             char *expression = queries[i].data.expression_match_data.expression;
             //q_num = 0;
-            printf("preprocess\n");
+            //printf("preprocess\n");
             preprocess(expression, trie_root);
             int ids[10000]={0}, counter=0;
-            printf("done pp\n");
+            //printf("done pp\n");
             for (int j = 0;j<n_mails;j++){
                 //printf("%d, ", j);
                 if (eval(j)){ //TODO
