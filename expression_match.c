@@ -113,13 +113,27 @@ void qpush(int type, int id){
 }
 
 void spush(int arr[3000][2], int type, bool exp, bool which){//0 for s, 1 for buffer
-    arr[s_num][0] = type;
-    arr[s_num][1] = exp;
-    (which)? bs_num++ : s_num++;
+    //(which)? bs_num++ : s_num++;
+    if (which){
+        arr[bs_num][0]=type;
+        arr[bs_num][1]=exp;
+        bs_num++;
+    }
+    else{
+        arr[s_num][0] = type;
+        arr[s_num][1] = exp;
+        s_num++;
+    }
 }
 
 void spop(bool which){
-    (which)? bs_num++ : s_num++;
+    //(which)? bs_num++ : s_num++;
+    if (which){
+        bs_num--;
+    }
+    else{
+        s_num--;
+    }
 }
 
 //this adds all the tokens in the expression into trie
@@ -169,9 +183,9 @@ void preprocess(char *exp, trie_node *root){
     }
 }
 
-void push_opr(int s[3000][2], int opr, bool eval, bool which){//0 for s, 1 for buffer
+void push_opr(int opr, bool eval, bool which){//0 for s, 1 for buffer
     if (which){
-        if (eval){
+        /*if (eval){
             bool e1 = buffer_stack_arr[bs_num][1], e2;
             spop(which);
             if (opr == 3){//and
@@ -188,31 +202,31 @@ void push_opr(int s[3000][2], int opr, bool eval, bool which){//0 for s, 1 for b
                 spush(s, 5, !e1, which);
             }
         }
-        else{
-            spush(s, opr, false, which);
-        }
+        else{*/
+        spush(buffer_stack_arr, opr, false, which);
+        //}
     }
     else{
-        if (eval){
+        //if (eval){
             bool e1 = stack_arr[s_num][1], e2;
             spop(which);
             if (opr == 3){//and
                 e2 = stack_arr[s_num][1];
                 spop(which);
-                spush(s, 5, e1&&e2, which);
+                spush(stack_arr, 5, e1&&e2, which);
             }
             else if (opr == 4){//or
                 e2 = stack_arr[s_num][1];
                 spop(which);
-                spush(s, 5, e1||e2, which);
+                spush(stack_arr, 5, e1||e2, which);
             }
             else if (opr == 2){//not
-                spush(s, 5, !e1, which);
+                spush(stack_arr, 5, !e1, which);
             }
-        }
+        /*}
         else{
             spush(s, opr, false, which);
-        }
+        }*/
     }
 }
 
@@ -225,36 +239,36 @@ bool eval(int mid){
         if (queue_arr[cur][0]<5){//is oprerator
             if (queue_arr[cur][0] == 4){//or
                 while (bs_num>0 && buffer_stack_arr[bs_num][0]!= 0 && buffer_stack_arr[bs_num][0]!=2){
-                    push_opr(stack_arr, buffer_stack_arr[bs_num][0], true, 0);
+                    push_opr(buffer_stack_arr[bs_num][0], true, 0);
                     spop(1);
                 }
-                push_opr(buffer_stack_arr, queue_arr[cur][0], false, 1);
+                push_opr(queue_arr[cur][0], false, 1);
             }
             else if (queue_arr[cur][0] == 3){//and
                 while (bs_num>0 && buffer_stack_arr[bs_num][0]!=0 && buffer_stack_arr[bs_num][0]!=2 && buffer_stack_arr[bs_num][0]!=4){
-                    push_opr(stack_arr, buffer_stack_arr[bs_num][0], true, 0);
+                    push_opr(buffer_stack_arr[bs_num][0], true, 0);
                     spop(1);
                 }
-                push_opr(buffer_stack_arr, queue_arr[cur][0], false, 1);
+                push_opr(queue_arr[cur][0], false, 1);
                 
             }
             else if (queue_arr[cur][0] == 2){//not
                 while (bs_num>0 && buffer_stack_arr[bs_num][0]!=0){
-                    push_opr(stack_arr, buffer_stack_arr[bs_num][0], true, 0);
+                    push_opr(buffer_stack_arr[bs_num][0], true, 0);
                     spop(1);
                 }
-                push_opr(buffer_stack_arr, queue_arr[cur][0], false, 1);
+                push_opr(queue_arr[cur][0], false, 1);
 
             }
             else if (queue_arr[cur][0] == 1){//)
                 while (bs_num>0 && buffer_stack_arr[bs_num][0]!= 0){
-                    push_opr(stack_arr, buffer_stack_arr[bs_num][0], true, 0);
+                    push_opr(buffer_stack_arr[bs_num][0], true, 0);
                     spop(1);
                 }
                 spop(1);
             }
             else{//(
-                push_opr(buffer_stack_arr, queue_arr[cur][0], false, 1);
+                push_opr(queue_arr[cur][0], false, 1);
             }
         }
         else{//is id
@@ -270,7 +284,7 @@ bool eval(int mid){
         cur++;
     }
     while (bs_num>0){
-        push_opr(stack_arr, buffer_stack_arr[bs_num][0], true, 0);
+        push_opr(buffer_stack_arr[bs_num][0], true, 0);
         spop(1);
     }
     
@@ -301,7 +315,7 @@ int main(){
 	for(int i = 0; i < n_queries; i++){
         if(queries[i].type == expression_match){
             char *expression = queries[i].data.expression_match_data.expression;
-            q_num = 0;
+            //q_num = 0;
             printf("preprocess\n");
             preprocess(expression, trie_root);
             int ids[10000]={0}, counter=0;
