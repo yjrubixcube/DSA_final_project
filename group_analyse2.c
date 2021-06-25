@@ -75,10 +75,6 @@ void Union(int id1, int id2){
 	}
 }
 
-
-// The testdata only contains the first 100 mails (mail1 ~ mail100)
-// and 2000 queries for you to debug.
-
 int n_mails, n_queries;
 mail *mails;
 query *queries;
