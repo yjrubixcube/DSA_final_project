@@ -117,19 +117,21 @@ void qpush(queue *q, int type, int id){
     q->len++;
 }
 
-stack* spush(stack *stk, int type, bool exp){
+void spush(stack **stk, int type, bool exp){
     stack *new = (stack*)malloc(sizeof(stack));
     new->type = type;
     new->exp = (type==5) ? exp : false;
-    new->next = stk;
-    new->ssize = (stk==NULL) ? 1 : 1+stk->ssize;
-    return new;
+    new->next = *stk;
+    new->ssize = (*stk==NULL) ? 1 : 1+(*stk)->ssize;
+    //return new;
+    *stk = new;
 }
 
-stack *spop(stack *stk){
-    stack *rtn = stk->next;
-    free(stk);
-    return rtn;
+void spop(stack **stk){
+    stack *buf = (*stk)->next, *rtn = *stk;
+    free(rtn);
+    *stk = buf;
+    //return rtn;
 }
 
 //this adds all the tokens in the expression into trie
@@ -178,9 +180,33 @@ void preprocess(char *exp, trie_node *root, queue *q){
     }
 }
 
+void push_opr(stack **s, int opr, bool eval){
+    if (eval){
+        bool e1 = (*s)->exp, e2;
+        spop(s);
+        if (opr == 3){//and
+            e2 = (*s)->exp;
+            spop(s);
+            spush(s, 5, e1&&e2);
+        }
+        else if (opr == 4){//or
+            e2 = (*s)->exp;
+            spop(s);
+            spush(s, 5, e1||e2);
+        }
+        else if (opr == 2){//not
+            spush(s, 5, !e1);
+        }
+    }
+    else{
+        spush(s, opr, false);
+    }
+}
+
 //TODO maybe add parameter of which mail
 bool eval(queue *q, int mid){
     qnode *cur = q->head;
+    /*
     stack *s = NULL;
     while (cur!=NULL)
     {
@@ -270,8 +296,63 @@ bool eval(queue *q, int mid){
         }
     }
     return s->exp;
-    
 
+    */
+    stack *s=NULL, *buf_s = NULL; 
+    while (cur!=NULL){
+        if (cur->type<5){//is oprerator
+            if (cur->type == 4){//or
+                while (buf_s!=NULL && buf_s->type!= 0 && buf_s->type!=2){
+                    push_opr(&s, buf_s->type, true);
+                    spop(&buf_s);
+                }
+                push_opr(&buf_s, cur->type, false);
+            }
+            else if (cur->type == 3){//and
+                while (buf_s!=NULL && buf_s->type!=0 && buf_s->type!=2 && buf_s->type!=4){
+                    push_opr(&s, buf_s->type, true);
+                    spop(&buf_s);
+                }
+                push_opr(&buf_s, cur->type, false);
+                
+            }
+            else if (cur->type == 2){//not
+                while (buf_s!=NULL && buf_s->type!=0){
+                    push_opr(&s, buf_s->type, true);
+                    spop(&buf_s);
+                }
+                push_opr(&buf_s, cur->type, false);
+
+            }
+            else if (cur->type == 1){//)
+                while (buf_s!=NULL && buf_s->type!= 0){
+                    push_opr(&s, buf_s->type, true);
+                    spop(&buf_s);
+                }
+                spop(&buf_s);
+            }
+            else{//(
+                push_opr(&buf_s, cur->type, false);
+            }
+        }
+        else{//is id
+            bool flag=false;
+            for (int i = 0;i<token_sets_len[mid];i++){
+                if (cur->id == token_sets[mid][i]){
+                    flag = true;
+                    break;
+                }
+            }
+            spush(&s, 5, flag);
+        }
+        cur = cur->next;
+    }
+    while (buf_s!=NULL){
+        push_opr(&s, buf_s->type, 1);
+        spop(&buf_s);
+    }
+    
+    return s->exp;
 }
 // The testdata only contains the first 100 mails (mail1 ~ mail100)
 // and 2000 queries for you to debug.
