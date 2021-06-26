@@ -113,7 +113,6 @@ void qpush(int type, int id){
 }
 
 void spush(int type, bool exp, bool which){//0 for s, 1 for buffer
-    //(which)? bs_num++ : s_num++;
     if (which){
         buffer_stack_arr[bs_num][0]=type;
         buffer_stack_arr[bs_num][1]=exp;
@@ -127,14 +126,11 @@ void spush(int type, bool exp, bool which){//0 for s, 1 for buffer
 }
 
 void spop(bool which){
-    //(which)? bs_num++ : s_num++;
     if (which){
         bs_num--;
-        //bs_num = (bs_num<=0)? 0 : bs_num;
     }
     else{
         s_num--;
-        //s_num = (s_num<=0)? 0 : s_num;
     }
 }
 
