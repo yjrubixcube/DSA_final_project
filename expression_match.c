@@ -8,9 +8,9 @@ int q_num=0, s_num=0, bs_num=0;
 int token_sets[10000][5000];
 int token_sets_len[10000];
 int token_check[140000];
-int queue_arr[3000][2]; //0 type 1 id
-int stack_arr[3000][2];
-int buffer_stack_arr[3000][2];
+int queue_arr[4096][2]; //0 type 1 id
+int stack_arr[4096][2];
+int buffer_stack_arr[4096][2];
 //int **sa = stack_arr, **bsa = buffer_stack_arr;
 
 typedef struct trie_node{
@@ -216,7 +216,7 @@ bool eval(int mid){
     while (cur<q_num){
         if (queue_arr[cur][0]<5){//is oprerator
             if (queue_arr[cur][0] == 4){//or
-                while (bs_num>0 && buffer_stack_arr[bs_num][0]!= 0 && buffer_stack_arr[bs_num-1][0]!=2){
+                while (bs_num>0 && buffer_stack_arr[bs_num-1][0]!= 0 && buffer_stack_arr[bs_num-1][0]!=2){
                     push_opr(buffer_stack_arr[bs_num-1][0], false);
                     spop(true);
                 }
@@ -265,7 +265,7 @@ bool eval(int mid){
         push_opr(buffer_stack_arr[bs_num-1][0], false);
         spop(true);
     }
-    //printf("%d\n", s_num);
+    if (s_num!=1) printf("%d\n", s_num);
     return stack_arr[0][1];
 }
 // The testdata only contains the first 100 mails (mail1 ~ mail100)
